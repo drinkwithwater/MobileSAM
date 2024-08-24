@@ -131,6 +131,7 @@ def run_export(
         "image_embeddings": torch.randn(1, embed_dim, *embed_size, dtype=torch.float),
         "point_coords": torch.randint(low=0, high=1024, size=(1, 5, 2), dtype=torch.float),
         "point_labels": torch.randint(low=0, high=4, size=(1, 5), dtype=torch.float),
+        "box": torch.randint(low=0, high=1024, size=(1, 4), dtype=torch.float),
         "mask_input": torch.randn(1, 1, *mask_input_size, dtype=torch.float),
         "has_mask_input": torch.tensor([1], dtype=torch.float),
         "orig_im_size": torch.tensor([1500, 2250], dtype=torch.float),

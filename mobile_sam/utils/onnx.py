@@ -66,6 +66,16 @@ class SamOnnxModel(nn.Module):
 
         return point_embedding
 
+    def _embed_box(self, boxes: torch.Tensor) -> torch.Tensor:
+        boxes = boxes + 0.5
+        box_coords = boxes.reshape(-1, 2, 2)
+        box_coords = box_coords + 0.5
+        box_coords = box_coords / self.img_size
+        corner_embedding = self.model.prompt_encoder.pe_layer._pe_encoding(box_coords)
+        corner_embedding[:, 0, :] += self.model.prompt_encoder.point_embeddings[2].weight
+        corner_embedding[:, 1, :] += self.model.prompt_encoder.point_embeddings[3].weight
+        return corner_embedding
+
     def _embed_masks(self, input_mask: torch.Tensor, has_mask_input: torch.Tensor) -> torch.Tensor:
         mask_embedding = has_mask_input * self.model.prompt_encoder.mask_downscaling(input_mask)
         mask_embedding = mask_embedding + (
@@ -110,11 +120,14 @@ class SamOnnxModel(nn.Module):
         image_embeddings: torch.Tensor,
         point_coords: torch.Tensor,
         point_labels: torch.Tensor,
+        box: torch.Tensor,
         mask_input: torch.Tensor,
         has_mask_input: torch.Tensor,
         orig_im_size: torch.Tensor,
     ):
-        sparse_embedding = self._embed_points(point_coords, point_labels)
+        points_embedding = self._embed_points(point_coords, point_labels)
+        box_embedding = self._embed_box(box)
+        sparse_embedding = torch.cat([points_embedding, box_embedding], dim=1)
         dense_embedding = self._embed_masks(mask_input, has_mask_input)
 
         masks, scores = self.model.mask_decoder.predict_masks(
